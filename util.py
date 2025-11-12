@@ -1,4 +1,4 @@
-# import network 
+import network 
 from time import time, sleep, localtime as loct
 from json import loads
 import usocket as usk
