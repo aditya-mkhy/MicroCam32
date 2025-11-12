@@ -2,7 +2,8 @@ import network
 from time import time, sleep, localtime as loct
 from json import loads
 import usocket as usk
-
+import json
+import os
 
 def log(*args, **kwargs):
     print(f" INFO [{loct()[2]}/{loct()[1]}/{loct()[0]} {loct()[3]}:{loct()[4]}:{loct()[5]}] ", args, kwargs)
@@ -72,3 +73,50 @@ class WiFi:
             return wifi_list
         except:
             return wifi_list
+        
+
+
+class DB(dict):
+    def __init__(self, file: str = "db.json"):
+        self.file = file
+        if not os.path.exists(self.file):
+            #if file not exits, create new one
+            self.__write(refresh = True)
+
+        # read
+        self.__read()
+
+        
+    def __read(self) -> dict:
+        with open(self.file, "r") as ff:
+            try:
+                self.update(json.loads(ff.read()))
+            except:
+                log("ErrorInDataBase: Can't read it..")
+                return self.write(refresh = True)
+            
+    
+    def __write(self, refresh = False) -> dict:
+        if refresh:
+            self.__init_data()
+
+        with open(self.file, "w") as tf:
+            tf.write(json.dumps(self))
+
+    def __init_data(self):
+        self.update({
+            "ssid" : None,
+            "passwd" : None,
+            "default_passwd" : "12345678",
+        })
+    
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.__write()
+    
+ 
+
+if __name__ == "__main__":
+    db = DB()
+    print(db)
+    

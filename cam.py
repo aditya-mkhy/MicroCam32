@@ -4,7 +4,14 @@ from time import sleep
 import gc
 from util import WiFi, log
 
+class Conn:
+    def __init__(self):
+        pass
+        
 
+
+class Cam:
+    pass
 def handle_client(conn):
     gc.collect()
     data = conn.recv(1024).decode()
@@ -84,7 +91,3 @@ while True:
 
 print("Done......")
 
-
-
-    
-    
