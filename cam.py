@@ -2,92 +2,83 @@ import socket
 import camera
 from time import sleep
 import gc
-from util import WiFi, log
+from util import WiFi, log, DB
 
-class Conn:
+class Server:
     def __init__(self):
-        pass
+        self.db = DB()
+        self.wifi = WiFi()
+        ssid = self.db.get("ssid")
+        log(f"Connecting to wi-fi -> {ssid}")
+        status = self.wifi.connect_to(ssid=ssid, passwd=self.db.get("passwd"), timeout=120)
+
+        if not status:
+            log(f"Error in connecting with ssid : {ssid}. So can't proceed further.")
+            exit()
         
+        log(f"Connected to {ssid}")
+        if not self.wifi.is_online():
+            log(f"Not conneted to the in INTERNET. But can proceed further..")
 
+        log("Connected to INTERNET. Let's start..")
 
-class Cam:
-    pass
-def handle_client(conn):
-    gc.collect()
-    data = conn.recv(1024).decode()
-    print("Data==>", data)
-    if data == "--send--img" or data:
+        # Create server..
         gc.collect()
-        img = camera.capture()
-        f = f"len=={len(img)}"
-        conn.send(f.encode())
-        conf = conn.recv(100).decode()
-        if conf == "ok":
-            
-            conn.send(img)
-            conf = conn.recv(100).decode()
-            gc.collect()
-            if conf == "ok":
-                print("Image send sucess")
+        self.network = socket.socket()
+        self.network.bind(('0.0.0.0', 80))
+        self.network.listen(5)
+        self.network.settimeout(3)
+        log("Server network initialized....")
+
+    def init_camera(self):
+        gc.collect()
+
+        camera.framesize(10)     # frame size 800X600 (1.33 espect ratio)
+        camera.contrast(100)       # increase contrast
+        camera.speffect(100)
+
+        for i in range(5):
+            cam = camera.init()
+            if cam:
+                break
             else:
-                print("Error in conferming")
-    conn.close()
-    
-def handle_web_client(conn):
-    gc.collect()
-    conn.send(camera.capture())
-    conn.close()
+                sleep(2)
 
-for i in range(5):
-    cam = camera.init()
-    print("Camera ready?: ", cam)
-    if cam:
-        break
-    else:
-        sleep(2)
-    
-    
-wlan = WiFi()
-ssid = "kumud 4g"
-passwd = "you wifi passwd"
+        log("is camera ready? : ", cam)
 
-wlan.connect_to(ssid=ssid, passwd=passwd)
 
-gc.collect()
-camera.framesize(10)     # frame size 800X600 (1.33 espect ratio)
-camera.contrast(100)       # increase contrast
-camera.speffect(100)
+    def handle_client(self, conn):
+        gc.collect()
+        conn.send(camera.capture())
+        conn.close()
 
-net = socket.socket()
-net.bind(('0.0.0.0', 80))
-net.listen(5)
-net.settimeout(3)
-print("Done initializing....")
-gc.collect()
-while True:
-    try:
-        conn, addr = net.accept()
-        print(f"Connected....{addr}")
-        handle_web_client(conn)
+    def run(self):
+        self.init_camera()
 
-    except Exception as e:
-        e = str(e)
-        if "ETIMEDOUT" in str(e):
-            print("TimeOut")
-        else:
-            print(f"Erorr[00190] : {e}")
-    
+        while True:
+            try:
+                conn, addr = self.network.accept()
+                log(f"Connected....{addr}")
+                self.handle_client(conn)
 
-    except KeyboardInterrupt:
-        try:
-            conn.close()
-        except:
-            pass
-        try:
-            net.close()
-        except:
-            pass
-        break
+            except Exception as e:
+                if "ETIMEDOUT" in str(e):
+                    log("Timeout")
+                else:
+                    log(f"Erorr[001] : {e}")
+            
+            except KeyboardInterrupt:
+                try:
+                    conn.close()
+                except:
+                    pass
+                try:
+                    self.network.close()
+                except:
+                    pass
+                break
+            
 
-print("Done......")
-
+if __name__ == "__main__":
+    server = Server()
+    server.run()
