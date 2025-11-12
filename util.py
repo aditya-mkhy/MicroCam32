@@ -1,4 +1,4 @@
-import network 
+# import network 
 from time import time, sleep, localtime as loct
 from json import loads
 import usocket as usk
@@ -119,3 +119,4 @@ class DB(dict):
 if __name__ == "__main__":
     db = DB()
     print(db)
+    
