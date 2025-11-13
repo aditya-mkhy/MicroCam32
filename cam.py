@@ -2,7 +2,7 @@ import socket
 import camera
 from time import sleep
 import gc
-from util import WiFi, log, DB
+from util import WiFi, log, DB, update_time
 
 class Server:
     def __init__(self):
@@ -30,11 +30,14 @@ class Server:
         self.network.settimeout(3)
         log("Server network initialized....")
 
+        # update time...
+        update_time()
+
     def init_camera(self):
         gc.collect()
 
-        camera.framesize(10)     # frame size 800X600 (1.33 espect ratio)
-        camera.contrast(100)       # increase contrast
+        camera.framesize(10) # frame size 800X600 (1.33 espect ratio)
+        camera.contrast(100) # increase contrast
         camera.speffect(100)
 
         for i in range(5):
@@ -47,7 +50,7 @@ class Server:
         log("is camera ready? : ", cam)
 
 
-    def handle_client(self, conn):
+    def handle_client(self, conn: socket.socket):
         gc.collect()
         conn.send(camera.capture())
         conn.close()
@@ -72,12 +75,15 @@ class Server:
                     conn.close()
                 except:
                     pass
+
                 try:
-                    self.network.close()
+                    self.network.shutdown(socket.SHUT_RDWR)
                 except:
                     pass
+
+                self.network.close()
                 break
-            
+
 
 if __name__ == "__main__":
     server = Server()

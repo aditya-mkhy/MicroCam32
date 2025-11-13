@@ -5,6 +5,10 @@ import usocket as usk
 import json
 import os
 
+import ntptime
+import utime
+import machine
+
 def log(*args, **kwargs):
     print(f" INFO [{loct()[2]}/{loct()[1]}/{loct()[0]} {loct()[3]}:{loct()[4]}:{loct()[5]}] ", args, kwargs)
   
@@ -114,6 +118,33 @@ class DB(dict):
         super().__setitem__(key, value)
         self.__write()
     
+
+def update_time():
+    # Set your timezone offset (seconds)
+    # Example: IST = +5:30 → 5*3600 + 30*60 = 19800
+    TZ_OFFSET = 5 * 3600 + 30 * 60 
+    try:
+        ntptime.settime()  # sync RTC to UTC via NTP
+        log("NTP time updated successfully!")
+        
+        # get local time (apply timezone offset)
+        local_time = utime.localtime(utime.time() + TZ_OFFSET)
+        formatted_time = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(
+            local_time[0], local_time[1], local_time[2],
+            local_time[3], local_time[4], local_time[5]
+        )
+        log("🕒 Local Time:", formatted_time)
+        
+        # (optional) write local time into RTC instead of UTC
+        rtc = machine.RTC()
+        rtc.datetime((local_time[0], local_time[1], local_time[2],
+                      local_time[6], local_time[3], local_time[4],
+                      local_time[5], 0))
+                      
+        return True
+    except Exception as e:
+        print("❌ Failed to update time:", e)
+        return False
  
 
 if __name__ == "__main__":
