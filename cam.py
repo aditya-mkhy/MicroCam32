@@ -3,9 +3,15 @@ import camera
 from time import sleep
 import gc
 from util import WiFi, log, DB, update_time
+import machine
 
 class Server:
     def __init__(self):
+        # flash light
+        self.flash = machine.Pin(4, machine.Pin.OUT)
+        self.flash.value(0)
+        self.use_flash = False
+
         self.db = DB()
         self.wifi = WiFi()
         ssid = self.db.get("ssid")
@@ -52,8 +58,20 @@ class Server:
 
     def handle_client(self, conn: socket.socket):
         gc.collect()
+
+        flag = 0 # if the flash is on by this function...
+        if self.use_flash() and not self.flash.value():
+            self.flash.value(True)
+            flag = 1
+
         conn.send(camera.capture())
+
+        if flag: 
+            # off the flash after capturing the image
+            self.flash.value(False)
         conn.close()
+        gc.collect()
+
 
     def run(self):
         self.init_camera()

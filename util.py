@@ -10,7 +10,7 @@ import utime
 import machine
 
 def log(*args, **kwargs):
-    print(f" INFO [{loct()[2]}/{loct()[1]}/{loct()[0]} {loct()[3]}:{loct()[4]}:{loct()[5]}] ", args, kwargs)
+    print(f" INFO [{loct()[2]}/{loct()[1]}/{loct()[0]} {loct()[3]}:{loct()[4]}:{loct()[5]}] ", *args, **kwargs)
   
 class WiFi:
     def __init__(self):
@@ -78,26 +78,34 @@ class WiFi:
         except:
             return wifi_list
         
+def path_exists(path):
+    try:
+        os.stat(path)
+        return True
+    except OSError:
+        return False
 
 
 class DB(dict):
     def __init__(self, file: str = "db.json"):
+        super().__init__()
         self.file = file
-        if not os.path.exists(self.file):
-            #if file not exits, create new one
-            self.__write(refresh = True)
 
-        # read
-        self.__read()
+        if path_exists(self.file):
+            self.__read()
+            return
+        
+        # if file not exits
+        self.__write(refresh = True)
 
         
-    def __read(self) -> dict:
+    def __read(self):
         with open(self.file, "r") as ff:
             try:
                 self.update(json.loads(ff.read()))
             except:
                 log("ErrorInDataBase: Can't read it..")
-                return self.write(refresh = True)
+                return self.__write(refresh = True)
             
     
     def __write(self, refresh = False) -> dict:
@@ -143,11 +151,6 @@ def update_time():
                       
         return True
     except Exception as e:
-        print("❌ Failed to update time:", e)
+        print("Failed to update time:", e)
         return False
  
-
-if __name__ == "__main__":
-    db = DB()
-    print(db)
-    
